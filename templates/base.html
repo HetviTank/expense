@@ -3,6 +3,7 @@
 <head>
     <title>Expense App</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/auth.js"></script>
 </head>
 <body>
     <nav>
@@ -10,9 +11,21 @@
         <a href="/expenses">Expenses</a> |
         <a href="/expenses/add">Add Expense</a> |
         <a href="/summary">Summary</a> |
-        <a href="/login">Logout</a>
+        <a href="#" onclick="logout()">Logout</a>
     </nav>
     <hr>
     {% block content %}{% endblock %}
+    
+    <script>
+    function logout() {
+        fetch('/logout', { method: 'POST' })
+            .then(() => {
+                window.location.href = '/login';
+            })
+            .catch(() => {
+                window.location.href = '/login';
+            });
+    }
+    </script>
 </body>
 </html>

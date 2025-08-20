@@ -3,3 +3,5 @@ fastapi==0.111.0
 sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
 pydantic==2.5.1
+bcrypt==4.0.1
+python-multipart==0.0.6

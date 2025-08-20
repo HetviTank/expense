@@ -1,94 +1,162 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Monthly Summary</h2>
+<h2>Expense Summary by Category</h2>
 
-<!-- 🔽 Month & Year Dropdowns -->
-<form id="filterForm" style="margin-bottom: 20px; text-align:center;">
-  <select id="yearSelect" required>
-    {% for y in range(2020, 2031) %}
-      <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
-    {% endfor %}
+<!-- 🔽 Filter Options -->
+<form id="filterForm" style="margin-bottom: 30px; text-align:center;">
+  <select id="periodSelect" required onchange="toggleDateInputs()">
+    <option value="monthly">Monthly</option>
+    <option value="yearly">Yearly</option>
+    <option value="all">All Time</option>
   </select>
 
-  <select id="monthSelect" required>
-    {% for m in range(1, 13) %}
-      <option value="{{ m }}" {% if m == month %}selected{% endif %}>
-        {{ ["January","February","March","April","May","June","July","August","September","October","November","December"][m-1] }}
-      </option>
-    {% endfor %}
-  </select>
+  <div id="monthlyInputs">
+    <select id="yearSelect" required>
+      {% for y in range(2020, 2031) %}
+        <option value="{{ y }}">{{ y }}</option>
+      {% endfor %}
+    </select>
 
-  <button type="submit">Show</button>
+    <select id="monthSelect" required>
+      <option value="1">January</option>
+      <option value="2">February</option>
+      <option value="3">March</option>
+      <option value="4">April</option>
+      <option value="5">May</option>
+      <option value="6">June</option>
+      <option value="7">July</option>
+      <option value="8">August</option>
+      <option value="9">September</option>
+      <option value="10">October</option>
+      <option value="11">November</option>
+      <option value="12">December</option>
+    </select>
+  </div>
+
+  <div id="yearlyInputs" style="display:none;">
+    <select id="yearOnlySelect">
+      {% for y in range(2020, 2031) %}
+        <option value="{{ y }}">{{ y }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <button type="submit">Get Summary</button>
 </form>
 
-<!-- 📊 Table + Chart (Hidden initially) -->
-<div id="summaryContainer" style="display:none; margin-top:20px;">
-  <table border="1" id="summaryTable">
+<!-- 📊 Summary Results -->
+<div id="summaryContainer" style="display:none; margin-top:30px;">
+  <div id="totalAmount" style="text-align:center; margin-bottom:20px; font-size:18px; font-weight:bold;"></div>
+  
+  <table id="summaryTable">
     <thead>
       <tr>
         <th>Category</th>
-        <th>Total</th>
+        <th>Amount</th>
+        <th>Percentage</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
-  <canvas id="summaryChart" width="400" height="200"></canvas>
+  <canvas id="summaryChart" width="400" height="200" style="margin-top:30px;"></canvas>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let chart; // store chart instance
 
-async function loadSummary(year, month) {
+// Set current month and year as default
+const now = new Date();
+document.getElementById('yearSelect').value = now.getFullYear();
+document.getElementById('monthSelect').value = now.getMonth() + 1;
+document.getElementById('yearOnlySelect').value = now.getFullYear();
+
+function toggleDateInputs() {
+  const period = document.getElementById('periodSelect').value;
+  document.getElementById('monthlyInputs').style.display = period === 'monthly' ? 'inline' : 'none';
+  document.getElementById('yearlyInputs').style.display = period === 'yearly' ? 'inline' : 'none';
+}
+
+async function loadSummary(url, periodText) {
   try {
-    const response = await fetch(`/expenses/summary/${year}/${month}`);
+    const response = await fetch(url);
     const data = await response.json();
 
     const tbody = document.querySelector("#summaryTable tbody");
     tbody.innerHTML = "";
 
     if (data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="2">No data available</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3">No expenses found for this period</td></tr>`;
+      document.getElementById('totalAmount').innerHTML = `${periodText}: No data`;
     } else {
+      const total = data.reduce((sum, item) => sum + item.total, 0);
+      document.getElementById('totalAmount').innerHTML = `${periodText} - Total: ₹${total.toFixed(2)}`;
+      
       data.forEach(item => {
-        const row = `<tr><td>${item.category}</td><td>${item.total}</td></tr>`;
+        const percentage = ((item.total / total) * 100).toFixed(1);
+        const row = `<tr><td>${item.category}</td><td>₹${item.total.toFixed(2)}</td><td>${percentage}%</td></tr>`;
         tbody.insertAdjacentHTML("beforeend", row);
       });
     }
 
-    // Show summary container
     document.getElementById("summaryContainer").style.display = "block";
 
     // Draw Chart
     const ctx = document.getElementById('summaryChart').getContext('2d');
     if (chart) chart.destroy();
     chart = new Chart(ctx, {
-      type: 'pie',
+      type: 'doughnut',
       data: {
         labels: data.map(item => item.category),
         datasets: [{
-          label: "Expenses",
           data: data.map(item => item.total),
           backgroundColor: [
-            "#FF7043","#FFB347","#FFCC80",
-            "#FF8A65","#E65100","#F57C00",
-            "#FFD180","#FFAB91","#FF5722"
+            "#0984e3", "#00b894", "#74b9ff", "#00cec9",
+            "#6c5ce7", "#a29bfe", "#fd79a8", "#fdcb6e",
+            "#e17055", "#81ecec", "#55a3ff", "#26de81"
           ]
         }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
       }
     });
   } catch (error) {
     console.error("Error fetching summary:", error);
+    alert('Error loading summary data');
   }
 }
 
 // Handle form submit
 document.getElementById("filterForm").addEventListener("submit", function(e) {
   e.preventDefault();
-  const year = document.getElementById("yearSelect").value;
-  const month = document.getElementById("monthSelect").value;
-  loadSummary(year, month);
+  const period = document.getElementById('periodSelect').value;
+  
+  if (period === 'monthly') {
+    const year = document.getElementById('yearSelect').value;
+    const month = document.getElementById('monthSelect').value;
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    loadSummary(`/expenses/summary/${year}/${monthNames[month-1]}`, `${monthNames[month-1]} ${year}`);
+  } else if (period === 'yearly') {
+    const year = document.getElementById('yearOnlySelect').value;
+    loadSummary(`/expenses/summary/year/${year}`, `Year ${year}`);
+  } else {
+    loadSummary('/expenses/summary/all', 'All Time');
+  }
 });
+
+// Load current month summary on page load
+window.onload = function() {
+  const year = document.getElementById('yearSelect').value;
+  const month = document.getElementById('monthSelect').value;
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  loadSummary(`/expenses/summary/${year}/${monthNames[month-1]}`, `${monthNames[month-1]} ${year}`);
+};
 </script>
 {% endblock %}

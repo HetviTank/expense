@@ -1,35 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Your Expenses</h2>
-<table border="1">
+<table>
   <tr>
+    <th>Date</th>
     <th>Amount</th>
     <th>Category</th>
+    <th>Description</th>
     <th>Receipt</th>
-    <th>Action</th>
+    <th>Actions</th>
   </tr>
   {% for e in expenses %}
   <tr>
-    <!-- <td>{{ e.title }}</td> -->
-    <td>{{ e.amount }}</td>
+    <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
+    <td>₹{{ e.amount }}</td>
     <td>{{ e.category }}</td>
+    <td>{{ e.description or '-' }}</td>
     <td>
       {% if e.bill_image %}
-        <img src="/{{ e.bill_image }}" alt="Receipt" width="100">
+        <a href="/{{ e.bill_image }}" target="_blank" style="color: #0984e3; text-decoration: none;">📄 View</a>
       {% else %}
-        No file
+        -
       {% endif %}
     </td>
     <td>
-      <form action="/expenses/edit/{{ e.id }}" method="get" style="display:inline;">
-    <button type="submit">Edit</button>
-  </form>
-      <form action="/expenses/delete/{{ e.id }}" method="post" style="display:inline;"
-            onsubmit="event.preventDefault(); fetch(this.action, {method: 'DELETE'}).then(() => location.reload());">
-        <button type="submit">Delete</button>
-      </form>
+      <button onclick="window.location.href='/expenses/edit/{{ e.id }}'" class="action-btn edit-btn" title="Edit">
+        ✏️
+      </button>
+      <button onclick="deleteExpense('{{ e.id }}')" class="action-btn delete-btn" title="Delete">
+        🗑️
+      </button>
     </td>
   </tr>
   {% endfor %}
 </table>
+
+<script>
+function deleteExpense(id) {
+  if (confirm('Are you sure you want to delete this expense?')) {
+    fetch(`/expenses/delete/${id}`, {method: 'DELETE'})
+      .then(() => location.reload())
+      .catch(err => alert('Error deleting expense'));
+  }
+}
+</script>
 {% endblock %}

@@ -24,7 +24,7 @@
 
 <script>
 document.getElementById("loginForm").addEventListener("submit", async function(e) {
-    e.preventDefault(); // prevent default form submission
+    e.preventDefault();
 
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
@@ -33,21 +33,16 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         const response = await fetch("/login", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({ username, password })
+            body: new URLSearchParams({ username, password }),
+            redirect: 'follow'
         });
 
-        if (!response.ok) {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else if (!response.ok) {
             const data = await response.json();
             alert(data.detail || "Login failed");
-            return;
         }
-
-        const data = await response.json();
-        localStorage.setItem("access_token", data.access_token); // store token
-        localStorage.setItem("token_type", data.token_type);
-
-        // Redirect to dashboard
-        window.location.href = "/dashboard";
     } catch (err) {
         console.error(err);
         alert("An error occurred during login");
