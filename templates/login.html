@@ -1,17 +1,58 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Login</h2>
+<h2 class="text-center">Login</h2>
 
-<form method="post" action="/login">
-    <input name="username" placeholder="Username"><br>
-    <input type="password" name="password" placeholder="Password"><br>
-    <button type="submit">Login</button>
+<form id="loginForm" style="max-width:400px; margin:auto;">
+    <div>
+        <label for="username">Email</label><br>
+        <input type="text" id="username" name="username" placeholder="Enter your email" required>
+    </div>
+    <br>
+    <div>
+        <label for="password">Password</label><br>
+        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+    </div>
+    <br>
+    <div>
+        <button type="submit">Login</button>
+    </div>
 </form>
-<p>No account? <a href="/register">Register here</a></p>
 
-{% if error %}
+<p style="text-align:center; margin-top:10px;">
+    No account? <a href="/register">Register here</a>
+</p>
+
 <script>
-    alert("{{ error }}");
+document.getElementById("loginForm").addEventListener("submit", async function(e) {
+    e.preventDefault(); // prevent default form submission
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    try {
+        const response = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ username, password })
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            alert(data.detail || "Login failed");
+            return;
+        }
+
+        const data = await response.json();
+        localStorage.setItem("access_token", data.access_token); // store token
+        localStorage.setItem("token_type", data.token_type);
+
+        // Redirect to dashboard
+        window.location.href = "/dashboard";
+    } catch (err) {
+        console.error(err);
+        alert("An error occurred during login");
+    }
+});
 </script>
-{% endif %}
+
 {% endblock %}
