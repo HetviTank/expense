@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Dashboard</h2>
+<canvas id="categoryChart" width="400" height="200"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('categoryChart');
+new Chart(ctx, {
+    type: 'pie',
+    data: {
+        labels: {{ categories.keys() | list | safe }},
+        datasets: [{
+            label: 'Expenses by Category',
+            data: {{ categories.values() | list | safe }},
+            borderWidth: 1
+        }]
+    }
+});
+</script>
+{% endblock %}

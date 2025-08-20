@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Your Expenses</h2>
+<table border="1">
+<tr><th>Amount</th><th>Category</th><th>Receipt</th><th>Action</th></tr>
+{% for e in expenses %}
+<tr>
+  <!-- <td>{{ e.title }}</td> -->
+  <td>{{ e.amount }}</td>
+  <td>{{ e.category }}</td>
+  <td>
+    {% if e.bill_image %}
+      <img src="/{{ e.bill_image }}" alt="Receipt" width="100">
+    {% else %}
+      No file
+    {% endif %}
+  </td>
+  <td><a href="/expenses/delete/{{ e.id }}">Delete</a></td>
+</tr>
+{% endfor %}
+</table>
+{% endblock %}
