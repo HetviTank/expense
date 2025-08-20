@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime, timedelta, timezone
 import json
 from fastapi import FastAPI, HTTPException, Request, Depends, Form, UploadFile, File, status
@@ -14,6 +15,8 @@ from config import JWT_KEY
 from database import Base, engine, SessionLocal
 from models import User, Expense
 from utils import generate_uuid
+
+import datetime
 
 Base.metadata.create_all(bind=engine)
 
@@ -196,20 +199,35 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
         categories[e.category] = categories.get(e.category, 0) + e.amount
     return templates.TemplateResponse("dashboard.html", {"request": request, "categories": categories})
 
+@app.get("/summary", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("summary.html", {"request": request})
+
+
 @app.get("/expenses/summary/{year}/{month}")
-def monthly_summary(year: int, month: int, db: Session = Depends(get_db)):
-    start_date = datetime.date(year, month, 1)
-    if month == 12:
-        end_date = datetime.date(year + 1, 1, 1)
+def monthly_summary(year: int, month: str, db: Session = Depends(get_db)):
+    try:
+        month_int = list(calendar.month_name).index(month.capitalize())
+        if month_int == 0:
+            raise ValueError
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid month name: {month}")
+
+    start_date = datetime.date(int(year), int(month_int), 1)
+
+    if month_int == 12:
+        end_date = datetime.date(int(year) + 1, 1, 1)
     else:
-        end_date = datetime.date(year, month + 1, 1)
- 
+        end_date = datetime.date(int(year), month_int + 1, 1)
+
     results = (
         db.query(Expense.category, func.sum(Expense.amount).label("total"))
-        .filter(Expense.date >= start_date, Expense.date < end_date)
+        .filter(Expense.date >= start_date, Expense.date < end_date, Expense.user_id == current_user_id, Expense.is_deleted == False)
         .group_by(Expense.category)
         .all()
     )
- 
-    return [{"category": r[0], "total": r[1]} for r in results]
+
+    return [{"category": r[0], "total": float(r[1])} for r in results]
+
+
 

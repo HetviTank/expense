@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Monthly Summary</h2>
+
+<!-- 🔽 Month & Year Dropdowns -->
+<form id="filterForm" style="margin-bottom: 20px; text-align:center;">
+  <select id="yearSelect" required>
+    {% for y in range(2020, 2031) %}
+      <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+  </select>
+
+  <select id="monthSelect" required>
+    {% for m in range(1, 13) %}
+      <option value="{{ m }}" {% if m == month %}selected{% endif %}>
+        {{ ["January","February","March","April","May","June","July","August","September","October","November","December"][m-1] }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <button type="submit">Show</button>
+</form>
+
+<!-- 📊 Table + Chart (Hidden initially) -->
+<div id="summaryContainer" style="display:none; margin-top:20px;">
+  <table border="1" id="summaryTable">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <canvas id="summaryChart" width="400" height="200"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let chart; // store chart instance
+
+async function loadSummary(year, month) {
+  try {
+    const response = await fetch(`/expenses/summary/${year}/${month}`);
+    const data = await response.json();
+
+    const tbody = document.querySelector("#summaryTable tbody");
+    tbody.innerHTML = "";
+
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="2">No data available</td></tr>`;
+    } else {
+      data.forEach(item => {
+        const row = `<tr><td>${item.category}</td><td>${item.total}</td></tr>`;
+        tbody.insertAdjacentHTML("beforeend", row);
+      });
+    }
+
+    // Show summary container
+    document.getElementById("summaryContainer").style.display = "block";
+
+    // Draw Chart
+    const ctx = document.getElementById('summaryChart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: data.map(item => item.category),
+        datasets: [{
+          label: "Expenses",
+          data: data.map(item => item.total),
+          backgroundColor: [
+            "#FF7043","#FFB347","#FFCC80",
+            "#FF8A65","#E65100","#F57C00",
+            "#FFD180","#FFAB91","#FF5722"
+          ]
+        }]
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching summary:", error);
+  }
+}
+
+// Handle form submit
+document.getElementById("filterForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  const year = document.getElementById("yearSelect").value;
+  const month = document.getElementById("monthSelect").value;
+  loadSummary(year, month);
+});
+</script>
+{% endblock %}

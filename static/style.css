@@ -1,4 +1,147 @@
-body { font-family: Arial, sans-serif; margin: 20px; }
-nav a { margin: 0 10px; }
-table { border-collapse: collapse; width: 100%; }
-td, th { padding: 8px; border: 1px solid #ddd; }
+/* 🌍 Global */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 20px;
+  background: #fffaf5;
+  color: #3a2e2e;
+  line-height: 1.6;
+}
+
+/* 🔝 Navigation */
+nav {
+  background: linear-gradient(90deg, #ff7b54, #ffb347);
+  padding: 12px 20px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: center;
+}
+nav a {
+  color: #fff;
+  margin: 0 18px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+nav a:hover {
+  color: #ffe082;
+  transform: translateY(-2px);
+}
+
+/* 🔠 Headings */
+h2 {
+  color: #e65100;
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* 📊 Table */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  background: #fffdf9;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+th, td {
+  padding: 14px 18px;
+  text-align: center;
+}
+th {
+  background: #ff7043;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 14px;
+}
+tr:nth-child(even) {
+  background: #fff5eb;
+}
+tr:hover {
+  background: #ffe0b2;
+  transition: background 0.3s;
+}
+
+/* 🎛️ Buttons */
+button {
+  background: #ff7043;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+button:hover {
+  background: #e65100;
+  transform: translateY(-2px);
+}
+button:active {
+  transform: scale(0.97);
+}
+
+/* 📝 Forms */
+form {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 25px;
+  background: #fffdf9;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+form input[type="number"],
+form input[type="text"],
+form input[type="date"],
+form select {
+  padding: 12px 14px;
+  border: 1px solid #d9a066;
+  border-radius: 8px;
+  width: 100%;
+  margin-bottom: 15px;
+  font-size: 15px;
+  background: #fff8f0;
+  transition: all 0.3s ease;
+}
+form input:focus,
+form select:focus {
+  border-color: #ff9800;
+  background: #fff;
+  outline: none;
+  box-shadow: 0 0 6px rgba(255,152,0,0.4);
+}
+form button {
+  width: 100%;
+  background: #ff9800;
+}
+form button:hover {
+  background: #e65100;
+}
+
+/* 📈 Chart Container */
+canvas {
+  display: block;
+  margin: 30px auto;
+  max-width: 600px;
+}
+
+/* 📱 Responsive */
+@media (max-width: 600px) {
+  nav {
+    flex-direction: column;
+    text-align: center;
+  }
+  nav a {
+    margin: 8px 0;
+  }
+  table, th, td {
+    font-size: 14px;
+  }
+  form {
+    padding: 20px;
+  }
+}
