@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Edit Expense</h2>
+
+<form id="editForm">
+  <label>Amount:</label><br>
+  <input type="number" name="amount" value="{{ expense.amount }}" required><br><br>
+
+  <label>Category:</label><br>
+  <input type="text" name="category" value="{{ expense.category }}" required><br><br>
+
+  <button type="submit">Update</button>
+</form>
+
+<script>
+document.getElementById("editForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+
+  await fetch("/expenses/edit/{{ expense.id }}", {
+    method: "PUT",
+    body: formData
+  });
+
+  // Redirect to expenses list after successful update
+  window.location.href = "/expenses";
+});
+</script>
+{% endblock %}
