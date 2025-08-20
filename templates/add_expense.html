@@ -3,7 +3,7 @@
 <h2>Add Expense</h2>
 <form method="post" action="/expenses/add" enctype="multipart/form-data">
     <input name="amount" type="number" step="0.01" placeholder="Amount" required><br>
-    <input name="category" placeholder="Category" required><br>
+    <input name="category" type="text" placeholder="Category" required><br>
     <input name="date" type="date" required><br>
     <textarea name="description" placeholder="Description"></textarea><br>
     <input type="file" name="bill"><br>

@@ -119,6 +119,46 @@ form select {
   background: #fff8f0;
   transition: all 0.3s ease;
 }
+form textarea {
+  padding: 12px 14px;
+  border: 1px solid #d9a066;
+  border-radius: 8px;
+  width: 92%;
+  margin-bottom: 18px;
+  font-size: 15px;
+  background: #fff8f0;
+  resize: vertical; /* allows vertical resizing only */
+  transition: all 0.3s ease;
+}
+
+form textarea:focus {
+  border-color: #ff9800;
+  background: #fff;
+  outline: none;
+  box-shadow: 0 0 8px rgba(255,152,0,0.4);
+}
+form input[type="file"] {
+  padding: 10px 12px;
+  border: 1px solid #d9a066;
+  border-radius: 8px;
+  width: 92%;
+  margin-bottom: 18px;
+  font-size: 15px;
+  background: #fff8f0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+form input[type="file"]:hover {
+  border-color: #ff9800;
+  box-shadow: 0 0 6px rgba(255,152,0,0.3);
+}
+
+form input[type="file"]:focus {
+  outline: none;
+  border-color: #ff9800;
+  box-shadow: 0 0 8px rgba(255,152,0,0.4);
+}
 form input:focus,
 form select:focus {
   border-color: #ff9800;
@@ -159,3 +199,4 @@ canvas {
     padding: 20px;
   }
 }
+
