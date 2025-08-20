@@ -24,7 +24,7 @@
 
 <script>
 document.getElementById("loginForm").addEventListener("submit", async function(e) {
-    e.preventDefault(); // prevent default form submission
+    e.preventDefault();
 
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
@@ -43,8 +43,9 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         }
 
         const data = await response.json();
-        localStorage.setItem("access_token", data.access_token); // store token
-        localStorage.setItem("token_type", data.token_type);
+
+        // Save JWT in cookie for dashboard
+        document.cookie = `access_token=${data.access_token}; path=/; HttpOnly`;
 
         // Redirect to dashboard
         window.location.href = "/dashboard";
@@ -54,5 +55,4 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
     }
 });
 </script>
-
 {% endblock %}

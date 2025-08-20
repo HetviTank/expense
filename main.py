@@ -23,7 +23,7 @@ from utils import generate_uuid
 from config import JWT_KEY
 
 # Security
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 # Database setup
 Base.metadata.create_all(bind=engine)
@@ -34,10 +34,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 templates = Jinja2Templates(directory="templates")
 
-
-# -----------------------------
-# JWT Token functions
-# -----------------------------
 def get_token(user_id: str, email: str):
     now_utc = datetime.now(timezone.utc)
     exp = now_utc + timedelta(hours=1)
@@ -56,21 +52,27 @@ def get_token(user_id: str, email: str):
 
 
 def verify_token(
-    db: Session,
+    db: Session = Depends(get_db),
+    request: Request = None,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    token = credentials.credentials
+    jwt_token = request.cookies.get("access_token") if request else None
+    if not jwt_token and credentials:
+        jwt_token = credentials.credentials
+
+    if not jwt_token:
+        raise HTTPException(status_code=401, detail="Missing token")
+
     try:
         key = jwk.JWK(**json.loads(JWT_KEY))
-        signed_token = jwt.JWT(key=key, jwt=token)
+        signed_token = jwt.JWT(key=key, jwt=jwt_token)
         claims = json.loads(signed_token.claims)
 
         db_user = db.query(User).filter(User.id == claims["id"]).first()
-        if not db_user or db_user.is_deleted:
+        if not db_user:
             raise HTTPException(status_code=401, detail="User not found or deleted")
 
         return db_user
-
     except jwt.JWTExpired:
         raise HTTPException(status_code=401, detail="Token has expired")
     except Exception as e:
@@ -78,9 +80,6 @@ def verify_token(
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-# -----------------------------
-# Routes
-# -----------------------------
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
@@ -100,6 +99,7 @@ def login(username: str = Form(...), password: str = Form(...), db: Session = De
 
     token = get_token(user.id, user.email)
     return {"access_token": token, "token_type": "bearer"}
+
 
 
 @app.get("/register", response_class=HTMLResponse)
@@ -125,15 +125,8 @@ def register(
 # Expenses routes
 # -----------------------------
 @app.get("/expenses", response_class=HTMLResponse)
-def expense_list(
-    request: Request,
-    db: Session = Depends(get_db),
-    db_user: User = Depends(lambda db=Depends(get_db), cred=Depends(security): verify_token(db, cred))
-):
-    expenses = db.query(Expense).filter(
-        Expense.user_id == db_user.id,
-        Expense.is_deleted == False
-    ).all()
+def expense_list(request: Request, db_user: User = Depends(verify_token), db: Session = Depends(get_db)):
+    expenses = db.query(Expense).filter(Expense.user_id == db_user.id, Expense.is_deleted == False).all()
     return templates.TemplateResponse("expenses.html", {"request": request, "expenses": expenses})
 
 
@@ -149,8 +142,8 @@ def add_expense(
     date: str = Form(...),
     description: str = Form(""),
     bill: UploadFile = File(None),
-    db: Session = Depends(get_db),
-    db_user: User = Depends(lambda db=Depends(get_db), cred=Depends(security): verify_token(db, cred))
+    db_user: User = Depends(verify_token),
+    db: Session = Depends(get_db)
 ):
     file_path = None
     if bill:
@@ -223,8 +216,8 @@ def delete_expense(
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,
-    db: Session = Depends(get_db),
-    db_user: User = Depends(lambda db=Depends(get_db), cred=Depends(security): verify_token(db, cred))
+    db_user: User = Depends(verify_token),
+    db: Session = Depends(get_db)
 ):
     expenses = db.query(Expense).filter(
         Expense.user_id == db_user.id,
@@ -241,6 +234,7 @@ def dashboard(
     )
 
 
+
 # -----------------------------
 # Summary
 # -----------------------------
@@ -250,12 +244,7 @@ def summary_page(request: Request):
 
 
 @app.get("/expenses/summary/{year}/{month}")
-def monthly_summary(
-    year: int,
-    month: str,
-    db: Session = Depends(get_db),
-    db_user: User = Depends(lambda db=Depends(get_db), cred=Depends(security): verify_token(db, cred))
-):
+def monthly_summary(year: int, month: str, db_user: User = Depends(verify_token), db: Session = Depends(get_db)):
     try:
         month_int = list(calendar.month_name).index(month.capitalize())
         if month_int == 0:
@@ -263,18 +252,15 @@ def monthly_summary(
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid month name: {month}")
 
-    start_date = date(year, month_int, 1)
-    if month_int == 12:
-        end_date = date(year + 1, 1, 1)
-    else:
-        end_date = date(year, month_int + 1, 1)
+    start_date = datetime(year, month_int, 1).date()
+    end_date = datetime(year + (month_int // 12), (month_int % 12) + 1, 1).date()
 
     results = (
         db.query(Expense.category, func.sum(Expense.amount).label("total"))
         .filter(
+            Expense.user_id == db_user.id,
             Expense.date >= start_date,
             Expense.date < end_date,
-            Expense.user_id == db_user.id,
             Expense.is_deleted == False
         )
         .group_by(Expense.category)

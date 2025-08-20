@@ -11,10 +11,9 @@
   </select>
 
   <select id="monthSelect" required>
-    {% for m in range(1, 13) %}
-      <option value="{{ m }}" {% if m == month %}selected{% endif %}>
-        {{ ["January","February","March","April","May","June","July","August","September","October","November","December"][m-1] }}
-      </option>
+    {% set months = ["January","February","March","April","May","June","July","August","September","October","November","December"] %}
+    {% for m in months %}
+      <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>
     {% endfor %}
   </select>
 
@@ -42,6 +41,7 @@ let chart; // store chart instance
 
 async function loadSummary(year, month) {
   try {
+    // Pass month as string to match API
     const response = await fetch(`/expenses/summary/${year}/${month}`);
     const data = await response.json();
 
@@ -86,7 +86,14 @@ async function loadSummary(year, month) {
 // Handle form submit
 document.getElementById("filterForm").addEventListener("submit", function(e) {
   e.preventDefault();
-  const year = document.getElementById("yearSelect").value;
+  const year = parseInt(document.getElementById("yearSelect").value);
+  const month = document.getElementById("monthSelect").value;
+  loadSummary(year, month);
+});
+
+// Optional: load current month summary on page load
+window.addEventListener("DOMContentLoaded", () => {
+  const year = parseInt(document.getElementById("yearSelect").value);
   const month = document.getElementById("monthSelect").value;
   loadSummary(year, month);
 });

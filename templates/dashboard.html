@@ -4,7 +4,7 @@
 <canvas id="categoryChart" width="400" height="200"></canvas>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('categoryChart');
+const ctx = document.getElementById('categoryChart').getContext('2d'); // ✅ get 2d context
 new Chart(ctx, {
     type: 'pie',
     data: {
@@ -14,6 +14,18 @@ new Chart(ctx, {
             data: {{ categories.values() | list | safe }},
             borderWidth: 1
         }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Expenses by Category'
+            }
+        }
     }
 });
 </script>
