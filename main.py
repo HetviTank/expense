@@ -1,11 +1,14 @@
-from datetime import datetime
-from fastapi import FastAPI, Request, Depends, Form, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse
+from datetime import datetime, timedelta, timezone
+import json
+from fastapi import FastAPI, HTTPException, Request, Depends, Form, UploadFile, File, status
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from dependencies import get_db
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import shutil, os
+from jwcrypto import jwt, jwk
+from config import JWT_KEY
 
 from database import Base, engine, SessionLocal
 from models import User, Expense
@@ -19,39 +22,74 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 templates = Jinja2Templates(directory="templates")
 
 
-# Fake session (replace with JWT/cookies for real auth)
-current_user_id = 1
+def get_token(admin_user_id, email, db: Session = Depends(get_db)):
+    now_utc = datetime.now(timezone.utc)
+    expiration_datetime = now_utc + timedelta(hours=1)
+    claims = {
+        "id": admin_user_id,
+        "email": email,
+        "iat": now_utc.timestamp(),
+        "exp": expiration_datetime.timestamp(),
+    }
+
+    key = jwk.JWK(**json.loads(JWT_KEY))
+    token = jwt.JWT(header={"alg": "HS256"}, claims=claims)
+    token.make_signed_token(key)
+
+    encrypted_token = jwt.JWT(
+        header={"alg": "A256KW", "enc": "A256CBC-HS512"},
+        claims=token.serialize()
+    )
+    encrypted_token.make_encrypted_token(key)
+
+    return encrypted_token.serialize()
+
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return RedirectResponse("/login")
 
-# ---------- AUTH ----------
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == username, User.password == password).first()
-    if user:
-        global current_user_id
-        current_user_id = user.id
-        return RedirectResponse("/dashboard", status_code=302)
-    return RedirectResponse("/login", status_code=302)
+    global current_user_id
+    user = db.query(User).filter(User.email == username).first()
+    current_user_id = user.id
+    if not user or user.password != password:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    access_token = get_token(user.id, user.email, db)
+
+    response = RedirectResponse(url="/dashboard", status_code=302)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=False,
+        samesite="lax"
+    )
+    return response
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
 @app.post("/register")
-def register(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    user = User(username=username, password=password)
+def register(
+    name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    user = User(name=name, email=email, password=password, role=role)
     db.add(user)
     db.commit()
     return RedirectResponse("/login", status_code=302)
 
-# ---------- EXPENSES ----------
 @app.get("/expenses", response_class=HTMLResponse)
 def expense_list(request: Request, db: Session = Depends(get_db)):
     expenses = db.query(Expense).filter(Expense.user_id == current_user_id).all()
